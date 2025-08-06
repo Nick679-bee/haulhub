@@ -61,7 +61,7 @@ const HomePage = () => {
               </Button>
             </Link>
             <Link to="/services">
-              <Button variant="outline" size="lg" className="text-lg px-8 py-4 border-white text-white hover:bg-white hover:text-foreground">
+              <Button size="lg" className="text-lg px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white border-blue-600">
                 Truck Services
               </Button>
             </Link>

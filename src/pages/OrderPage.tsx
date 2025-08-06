@@ -115,7 +115,7 @@ const OrderPage = () => {
                         <div className="flex items-center justify-between w-full">
                           <span>{material.name}</span>
                           <Badge variant="outline" className="ml-2">
-                            ₹{material.pricePerTrip.toLocaleString()} {material.unit}
+                            Ksh {material.pricePerTrip.toLocaleString()} {material.unit}
                           </Badge>
                         </div>
                       </SelectItem>
@@ -178,7 +178,7 @@ const OrderPage = () => {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="distance">Distance (km)</Label>
+                    <Label htmlFor="distance">Distance from Mlolongo (km)</Label>
                     <Input
                       id="distance"
                       type="number"
@@ -263,7 +263,7 @@ const OrderPage = () => {
                     </div>
                     <div className="flex justify-between items-center text-sm text-muted-foreground">
                       <span>Base price:</span>
-                      <span>₹{selectedMaterial.pricePerTrip.toLocaleString()}/trip</span>
+                      <span>Ksh {selectedMaterial.pricePerTrip.toLocaleString()}/trip</span>
                     </div>
                   </div>
                 )}
@@ -302,7 +302,7 @@ const OrderPage = () => {
 
                 <div className="flex justify-between items-center text-lg font-bold">
                   <span>Total Price:</span>
-                  <span className="text-primary">₹{totalPrice.toLocaleString()}</span>
+                  <span className="text-primary">Ksh {totalPrice.toLocaleString()}</span>
                 </div>
 
                 <Button 
