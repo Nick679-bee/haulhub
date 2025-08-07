@@ -8,7 +8,7 @@ export interface HaulsState {
   error: string | null;
   total: number;
   filters: {
-    filter?: 'active' | 'completed' | 'pending' | 'my_hauls' | 'my_assignments';
+    filter?: 'all' | 'active' | 'completed' | 'pending' | 'my_hauls' | 'my_assignments';
     page: number;
     per_page: number;
   };
@@ -30,7 +30,7 @@ const initialState: HaulsState = {
 export const fetchHauls = createAsyncThunk(
   'hauls/fetchHauls',
   async (params?: {
-    filter?: 'active' | 'completed' | 'pending' | 'my_hauls' | 'my_assignments';
+    filter?: 'all' | 'active' | 'completed' | 'pending' | 'my_hauls' | 'my_assignments';
     page?: number;
     per_page?: number;
   }, { rejectWithValue }) => {

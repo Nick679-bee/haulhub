@@ -54,13 +54,15 @@ const DashboardPage = () => {
 
   useEffect(() => {
     // Calculate stats
-    const newStats = {
-      total: hauls.length,
-      pending: hauls.filter(h => h.status === 'pending').length,
-      inProgress: hauls.filter(h => h.status === 'in_progress').length,
-      completed: hauls.filter(h => h.status === 'completed').length,
-    };
-    setStats(newStats);
+    if (hauls && Array.isArray(hauls)) {
+      const newStats = {
+        total: hauls.length,
+        pending: hauls.filter(h => h.status === 'pending').length,
+        inProgress: hauls.filter(h => h.status === 'in_progress').length,
+        completed: hauls.filter(h => h.status === 'completed').length,
+      };
+      setStats(newStats);
+    }
   }, [hauls]);
 
   const handleFilterChange = (filter: string) => {
@@ -229,7 +231,7 @@ const DashboardPage = () => {
                 <SelectValue placeholder="Filter hauls" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Hauls</SelectItem>
+                <SelectItem value="all">All Hauls</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
@@ -246,7 +248,7 @@ const DashboardPage = () => {
             <div className="flex justify-center items-center py-12">
               <RefreshCw className="h-8 w-8 animate-spin text-blue-600" />
             </div>
-          ) : hauls.length === 0 ? (
+          ) : !hauls || hauls.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Package className="h-12 w-12 text-gray-400 mb-4" />
@@ -258,16 +260,16 @@ const DashboardPage = () => {
                 </Button>
               </CardContent>
             </Card>
-          ) : (
+          ) : hauls && Array.isArray(hauls) ? (
             hauls.map((haul) => (
               <Card key={haul.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => navigate(`/hauls/${haul.id}`)}>
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                        Haul #{haul.id}
+                        Haul #{haul.haul_number}
                       </h3>
-                      <p className="text-gray-600 mb-2">{haul.load_description}</p>
+                      <p className="text-gray-600 mb-2">{haul.load.description}</p>
                     </div>
                     {getStatusBadge(haul.status)}
                   </div>
@@ -277,13 +279,13 @@ const DashboardPage = () => {
                       <div className="flex items-center space-x-2">
                         <MapPin className="h-4 w-4 text-gray-500" />
                         <span className="text-sm text-gray-600">
-                          From: {haul.pickup_city}, {haul.pickup_state}
+                          From: {haul.pickup.city}, {haul.pickup.state}
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <MapPin className="h-4 w-4 text-gray-500" />
                         <span className="text-sm text-gray-600">
-                          To: {haul.delivery_city}, {haul.delivery_state}
+                          To: {haul.delivery.city}, {haul.delivery.state}
                         </span>
                       </div>
                     </div>
@@ -292,13 +294,13 @@ const DashboardPage = () => {
                       <div className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4 text-gray-500" />
                         <span className="text-sm text-gray-600">
-                          Pickup: {formatDate(haul.pickup_date)}
+                          Pickup: {formatDate(haul.pickup.date)}
                         </span>
                       </div>
                       <div className="flex items-center space-x-2">
                         <Calendar className="h-4 w-4 text-gray-500" />
                         <span className="text-sm text-gray-600">
-                          Delivery: {formatDate(haul.delivery_date)}
+                          Delivery: {formatDate(haul.delivery.date)}
                         </span>
                       </div>
                     </div>
@@ -307,10 +309,10 @@ const DashboardPage = () => {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center space-x-4 text-sm text-gray-600">
                       <span>Distance: {haul.distance_miles || 'N/A'} miles</span>
-                      <span>Load: {haul.load_type}</span>
-                      {haul.quoted_price && (
+                      <span>Load: {haul.load.type}</span>
+                      {haul.pricing.quoted_price && (
                         <span className="font-medium text-green-600">
-                          Ksh {haul.quoted_price.toLocaleString()}
+                          Ksh {parseFloat(haul.pricing.quoted_price).toLocaleString()}
                         </span>
                       )}
                     </div>
@@ -321,6 +323,18 @@ const DashboardPage = () => {
                 </CardContent>
               </Card>
             ))
+          ) : (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <AlertCircle className="h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Unable to load hauls</h3>
+                <p className="text-gray-500 mb-4">Please try refreshing the page</p>
+                <Button onClick={handleRefresh}>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+              </CardContent>
+            </Card>
           )}
         </div>
 

@@ -298,7 +298,7 @@ const TrucksPage = () => {
     const matchesSearch = truck.make.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          truck.model.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          truck.license_plate.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = !statusFilter || truck.status === statusFilter;
+    const matchesStatus = statusFilter === 'all' || !statusFilter || truck.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -344,7 +344,7 @@ const TrucksPage = () => {
                     <SelectValue placeholder="All statuses" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Statuses</SelectItem>
+                    <SelectItem value="all">All Statuses</SelectItem>
                     <SelectItem value="available">Available</SelectItem>
                     <SelectItem value="in_use">In Use</SelectItem>
                     <SelectItem value="maintenance">Maintenance</SelectItem>

@@ -28,45 +28,56 @@ export interface Truck {
 
 export interface Haul {
   id: number;
-  haul_type: 'pickup' | 'delivery' | 'both';
-  pickup_address: string;
-  pickup_city: string;
-  pickup_state: string;
-  pickup_zip: string;
-  pickup_date: string;
-  pickup_contact_name: string;
-  pickup_contact_phone: string;
-  pickup_instructions?: string;
-  pickup_latitude?: number;
-  pickup_longitude?: number;
-  delivery_address: string;
-  delivery_city: string;
-  delivery_state: string;
-  delivery_zip: string;
-  delivery_date: string;
-  delivery_contact_name: string;
-  delivery_contact_phone: string;
-  delivery_instructions?: string;
-  delivery_latitude?: number;
-  delivery_longitude?: number;
-  load_type: string;
-  load_description: string;
-  load_weight?: number;
-  load_volume?: number;
-  load_hazardous: boolean;
-  special_requirements?: string;
-  distance_miles?: number;
-  estimated_duration_hours?: number;
-  quoted_price?: number;
-  final_price?: number;
-  fuel_cost?: number;
-  payment_status: 'pending' | 'paid' | 'partial';
-  payment_method?: string;
+  haul_number: string;
   status: 'pending' | 'assigned' | 'in_progress' | 'completed' | 'cancelled';
+  haul_type: 'one_way' | 'pickup_delivery' | 'both';
+  pickup: {
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    date: string;
+    contact_name: string;
+    contact_phone: string;
+    instructions?: string;
+    coordinates?: [number, number];
+  };
+  delivery: {
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    date: string;
+    contact_name: string;
+    contact_phone: string;
+    instructions?: string;
+    coordinates?: [number, number];
+  };
+  load: {
+    type: string;
+    description: string;
+    weight?: string;
+    volume?: string;
+    hazardous: boolean;
+    special_requirements?: string;
+  };
+  truck?: string;
+  driver?: string;
+  pricing: {
+    quoted_price?: string;
+    final_price?: string;
+    fuel_cost?: string;
+    payment_status?: string;
+    payment_method?: string;
+  };
+  distance_miles?: string;
+  estimated_duration_hours?: string;
+  started_at?: string;
+  completed_at?: string;
+  customer?: string;
+  customer_phone?: string;
   notes?: string;
-  user_id: number;
-  truck_id?: number;
-  driver_id?: number;
+  completion_notes?: string;
   created_at: string;
   updated_at: string;
 }
@@ -123,7 +134,7 @@ export interface ApiResponse<T> {
 }
 
 class ApiService {
-  private token: string | null = null;
+  private token: string | null = localStorage.getItem('auth_token');
 
   setToken(token: string) {
     this.token = token;
@@ -131,10 +142,7 @@ class ApiService {
   }
 
   getToken(): string | null {
-    if (!this.token) {
-      this.token = localStorage.getItem('auth_token');
-    }
-    return this.token;
+    return localStorage.getItem('auth_token');
   }
 
   clearToken() {
@@ -261,7 +269,17 @@ class ApiService {
     const query = searchParams.toString();
     const endpoint = query ? `/hauls?${query}` : '/hauls';
     
-    return this.request<{ hauls: Haul[]; total: number }>(endpoint);
+    const response = await this.request<{ data: Haul[]; meta: { total: number } }>(endpoint);
+    
+    // Transform the response to match the expected structure
+    return {
+      status: response.status,
+      message: response.message,
+      data: {
+        hauls: response.data?.data || [],
+        total: response.data?.meta?.total || 0
+      }
+    };
   }
 
   async getHaul(id: number): Promise<ApiResponse<{ haul: Haul }>> {
