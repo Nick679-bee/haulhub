@@ -4,6 +4,7 @@ import { useAppSelector } from '@/hooks/useAppSelector';
 import { Button } from '@/components/ui/button';
 import { Menu, X, Truck, Package, Phone, Home, BarChart3, Settings, User } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+
 import logo from '@/assets/haulhub-logo.png';
 
 const Navigation = () => {
