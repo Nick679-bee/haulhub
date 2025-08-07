@@ -18,7 +18,7 @@ export interface Truck {
   model: string;
   year: number;
   license_plate: string;
-  capacity_tons: number;
+  capacity: number;
   fuel_type: string;
   status: 'available' | 'in_use' | 'maintenance';
   driver_id?: number;
@@ -158,18 +158,74 @@ class ApiService {
       ...options,
     };
 
+    console.log(`Making API request to: ${url}`);
+    console.log('Request config:', { method: config.method || 'GET', headers: config.headers });
+
     try {
       const response = await fetch(url, config);
+      console.log(`Response status: ${response.status}`);
+      
       const data = await response.json();
+      console.log('Response data:', data);
 
       if (!response.ok) {
         throw new Error(data.message || `HTTP ${response.status}`);
       }
 
       return data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('API request failed:', error);
-      throw error;
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
+      
+      // Provide user-friendly error messages
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('Unable to connect to the server. Please check your internet connection and try again.');
+      }
+      
+      if (error.message.includes('Failed to fetch')) {
+        throw new Error('Unable to connect to the server. Please check your internet connection and try again.');
+      }
+      
+      if (error.message.includes('NetworkError')) {
+        throw new Error('Network error. Please check your internet connection and try again.');
+      }
+      
+      if (error.message.includes('timeout')) {
+        throw new Error('Request timed out. Please try again.');
+      }
+      
+      // Handle specific HTTP status codes
+      if (error.message.includes('HTTP 401')) {
+        throw new Error('Invalid email or password. Please check your credentials and try again.');
+      }
+      
+      if (error.message.includes('HTTP 403')) {
+        throw new Error('Access denied. Please log in again.');
+      }
+      
+      if (error.message.includes('HTTP 404')) {
+        throw new Error('The requested resource was not found.');
+      }
+      
+      if (error.message.includes('HTTP 500')) {
+        throw new Error('Server error. Please try again later.');
+      }
+      
+      if (error.message.includes('HTTP 502') || error.message.includes('HTTP 503')) {
+        throw new Error('Service temporarily unavailable. Please try again later.');
+      }
+      
+      // If it's a server response with a message, use that
+      if (error.message && !error.message.includes('HTTP')) {
+        throw new Error(error.message);
+      }
+      
+      // Generic fallback
+      throw new Error('An unexpected error occurred. Please try again.');
     }
   }
 

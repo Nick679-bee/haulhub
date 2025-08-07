@@ -1,18 +1,23 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useAppSelector } from '@/hooks/useAppSelector';
 import { Button } from '@/components/ui/button';
 import { Menu, X, Truck, Package, Phone, Home, BarChart3, Settings, User } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import logo from '@/assets/haulhub-logo.png';
 
 const Navigation = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const { user, isAuthenticated } = useAppSelector(state => state.auth);
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
     { path: '/dashboard', label: 'Dashboard', icon: User },
-    { path: '/trucks', label: 'Trucks', icon: Truck },
-    { path: '/reports', label: 'Reports', icon: BarChart3 },
+    // Trucks only visible to admin and dispatcher users
+    ...(user?.role === 'admin' || user?.role === 'dispatcher' ? [{ path: '/trucks', label: 'Trucks', icon: Truck }] : []),
+    // Reports only visible to admin users
+    ...(user?.role === 'admin' ? [{ path: '/reports', label: 'Reports', icon: BarChart3 }] : []),
     { path: '/settings', label: 'Settings', icon: Settings },
     { path: '/services', label: 'Services', icon: Package },
     { path: '/contact', label: 'Contact', icon: Phone },
@@ -46,10 +51,14 @@ const Navigation = () => {
                 </Link>
               );
             })}
+            
+            {/* Theme Toggle */}
+            <ThemeToggle />
           </div>
 
           {/* Mobile Navigation Button */}
-          <div className="md:hidden flex items-center">
+          <div className="md:hidden flex items-center space-x-2">
+            <ThemeToggle />
             <Button
               variant="ghost"
               size="icon"

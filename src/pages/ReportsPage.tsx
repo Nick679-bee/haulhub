@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '@/hooks/useAppSelector';
 import { fetchHauls } from '@/store/slices/haulsSlice';
 import { apiService } from '@/lib/api';
@@ -22,14 +23,40 @@ import {
   CheckCircle,
   Clock,
   AlertCircle,
-  XCircle
+  XCircle,
+  Shield,
+  AlertTriangle
 } from 'lucide-react';
 import { Haul } from '@/lib/api';
 
 const ReportsPage = () => {
+  const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { hauls, isLoading } = useAppSelector(state => state.hauls);
-  const { user } = useAppSelector(state => state.auth);
+  const { user, isAuthenticated } = useAppSelector(state => state.auth);
+
+  // Access control - only admins can view reports
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    
+    if (user?.role !== 'admin') {
+      dispatch(addNotification({
+        type: 'error',
+        title: 'Access Denied',
+        message: 'You do not have permission to view reports. Only administrators can access this page.',
+      }));
+      navigate('/dashboard');
+      return;
+    }
+  }, [user, isAuthenticated, navigate, dispatch]);
+
+  // Don't render anything if user is not admin
+  if (!isAuthenticated || user?.role !== 'admin') {
+    return null;
+  }
 
   const [timeFilter, setTimeFilter] = useState('30');
   const [filteredHauls, setFilteredHauls] = useState<Haul[]>([]);
@@ -157,7 +184,13 @@ const ReportsPage = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
+            <div className="flex items-center space-x-3 mb-2">
+              <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
+              <Badge variant="secondary" className="flex items-center space-x-1">
+                <Shield className="h-3 w-3" />
+                Admin Only
+              </Badge>
+            </div>
             <p className="text-gray-600">Comprehensive insights into your haul operations</p>
           </div>
           <div className="flex items-center space-x-4">

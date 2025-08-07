@@ -22,45 +22,98 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle,
-  Clock
+  Clock,
+  Save,
+  X
 } from 'lucide-react';
 import { Truck as TruckType } from '@/lib/api';
 
 const TrucksPage = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { user } = useAppSelector(state => state.auth);
+  const { user, isAuthenticated } = useAppSelector(state => state.auth);
+
+  // Access control - only admins and dispatchers can manage trucks
+  useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    
+    if (user?.role !== 'admin' && user?.role !== 'dispatcher') {
+      dispatch(addNotification({
+        type: 'error',
+        title: 'Access Denied',
+        message: 'You do not have permission to manage trucks. Only administrators and dispatchers can access this page.',
+      }));
+      navigate('/dashboard');
+      return;
+    }
+  }, [user, isAuthenticated, navigate, dispatch]);
+
+  // Don't render anything if user is not authorized
+  if (!isAuthenticated || (user?.role !== 'admin' && user?.role !== 'dispatcher')) {
+    return null;
+  }
 
   const [trucks, setTrucks] = useState<TruckType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [editingTruck, setEditingTruck] = useState<TruckType | null>(null);
   const [newTruck, setNewTruck] = useState({
     make: '',
     model: '',
     year: '',
     license_plate: '',
-    capacity_tons: '',
+    capacity: '',
     fuel_type: '',
     status: 'available' as const,
   });
 
   useEffect(() => {
-    fetchTrucks();
-  }, []);
+    if (isAuthenticated) {
+      fetchTrucks();
+    }
+  }, [isAuthenticated]);
 
   const fetchTrucks = async () => {
     setIsLoading(true);
+    setHasError(false); // Reset error state
     try {
+      console.log('Fetching trucks...');
       const response = await apiService.getTrucks();
+      console.log('Trucks response:', response);
       setTrucks(response.data!.trucks);
     } catch (error: any) {
+      console.error('Error fetching trucks:', error);
+      
+      // Provide user-friendly error messages
+      let errorMessage = 'An error occurred while fetching trucks';
+      
+      if (error.message.includes('Unable to connect')) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+      } else if (error.message.includes('Server error')) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.message.includes('Service temporarily unavailable')) {
+        errorMessage = 'Service temporarily unavailable. Please try again later.';
+      } else if (error.message.includes('Access denied')) {
+        errorMessage = 'Your session has expired. Please log in again.';
+        // Redirect to login if session expired
+        navigate('/login');
+        return;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       dispatch(addNotification({
         type: 'error',
         title: 'Failed to fetch trucks',
-        message: error.message || 'An error occurred while fetching trucks',
+        message: errorMessage,
       }));
+      setHasError(true); // Set error state
     } finally {
       setIsLoading(false);
     }
@@ -82,7 +135,7 @@ const TrucksPage = () => {
       await apiService.createTruck({
         ...newTruck,
         year: parseInt(newTruck.year),
-        capacity_tons: parseFloat(newTruck.capacity_tons),
+        capacity: parseFloat(newTruck.capacity),
       });
       
       dispatch(addNotification({
@@ -97,16 +150,86 @@ const TrucksPage = () => {
         model: '',
         year: '',
         license_plate: '',
-        capacity_tons: '',
+        capacity: '',
         fuel_type: '',
         status: 'available',
       });
       fetchTrucks();
     } catch (error: any) {
+      let errorMessage = 'Failed to create truck';
+      
+      if (error.message.includes('Unable to connect')) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+      } else if (error.message.includes('Server error')) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.message.includes('Access denied')) {
+        errorMessage = 'Your session has expired. Please log in again.';
+        navigate('/login');
+        return;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       dispatch(addNotification({
         type: 'error',
         title: 'Creation Failed',
-        message: error.message || 'Failed to create truck',
+        message: errorMessage,
+      }));
+    }
+  };
+
+  const handleEditTruck = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!editingTruck) return;
+
+    if (!editingTruck.make || !editingTruck.model || !editingTruck.license_plate) {
+      dispatch(addNotification({
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Please fill in all required fields',
+      }));
+      return;
+    }
+
+    try {
+      await apiService.updateTruck(editingTruck.id, {
+        make: editingTruck.make,
+        model: editingTruck.model,
+        year: editingTruck.year,
+        license_plate: editingTruck.license_plate,
+        capacity: editingTruck.capacity,
+        fuel_type: editingTruck.fuel_type,
+        status: editingTruck.status,
+      });
+      
+      dispatch(addNotification({
+        type: 'success',
+        title: 'Truck Updated',
+        message: 'Truck has been updated successfully',
+      }));
+      
+      setEditingTruck(null);
+      fetchTrucks();
+    } catch (error: any) {
+      let errorMessage = 'Failed to update truck';
+      
+      if (error.message.includes('Unable to connect')) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+      } else if (error.message.includes('Server error')) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.message.includes('Access denied')) {
+        errorMessage = 'Your session has expired. Please log in again.';
+        navigate('/login');
+        return;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      dispatch(addNotification({
+        type: 'error',
+        title: 'Update Failed',
+        message: errorMessage,
       }));
     }
   };
@@ -123,12 +246,34 @@ const TrucksPage = () => {
       }));
       fetchTrucks();
     } catch (error: any) {
+      let errorMessage = 'Failed to delete truck';
+      
+      if (error.message.includes('Unable to connect')) {
+        errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+      } else if (error.message.includes('Server error')) {
+        errorMessage = 'Server error. Please try again later.';
+      } else if (error.message.includes('Access denied')) {
+        errorMessage = 'Your session has expired. Please log in again.';
+        navigate('/login');
+        return;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       dispatch(addNotification({
         type: 'error',
         title: 'Deletion Failed',
-        message: error.message || 'Failed to delete truck',
+        message: errorMessage,
       }));
     }
+  };
+
+  const startEditing = (truck: TruckType) => {
+    setEditingTruck({ ...truck });
+  };
+
+  const cancelEditing = () => {
+    setEditingTruck(null);
   };
 
   const getStatusBadge = (status: string) => {
@@ -268,8 +413,8 @@ const TrucksPage = () => {
                       id="capacity"
                       type="number"
                       step="0.1"
-                      value={newTruck.capacity_tons}
-                      onChange={(e) => setNewTruck(prev => ({ ...prev, capacity_tons: e.target.value }))}
+                      value={newTruck.capacity}
+                      onChange={(e) => setNewTruck(prev => ({ ...prev, capacity: e.target.value }))}
                       placeholder="e.g., 10.5"
                       required
                     />
@@ -311,9 +456,18 @@ const TrucksPage = () => {
 
         {/* Trucks List */}
         <div className="space-y-4">
-          {isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          {isLoading && !hasError ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-blue-600 mb-4" />
+              <p className="text-gray-600">Loading trucks...</p>
+            </div>
+          ) : hasError ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
+              <p className="text-gray-600 mb-4">Failed to fetch trucks. Please try again.</p>
+              <Button onClick={fetchTrucks} className="bg-blue-600 hover:bg-blue-700">
+                Retry
+              </Button>
             </div>
           ) : filteredTrucks.length === 0 ? (
             <Card>
@@ -333,58 +487,171 @@ const TrucksPage = () => {
             filteredTrucks.map((truck) => (
               <Card key={truck.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-6">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-4 mb-4">
+                  {editingTruck?.id === truck.id ? (
+                    // Edit Form
+                    <form onSubmit={handleEditTruck} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                          <h3 className="text-lg font-semibold text-gray-900">
-                            {truck.make} {truck.model}
-                          </h3>
-                          <p className="text-gray-600">License: {truck.license_plate}</p>
+                          <Label htmlFor={`edit-make-${truck.id}`}>Make *</Label>
+                          <Input
+                            id={`edit-make-${truck.id}`}
+                            value={editingTruck.make}
+                            onChange={(e) => setEditingTruck(prev => prev ? { ...prev, make: e.target.value } : null)}
+                            placeholder="e.g., Toyota, Ford"
+                            required
+                          />
                         </div>
-                        {getStatusBadge(truck.status)}
+                        <div>
+                          <Label htmlFor={`edit-model-${truck.id}`}>Model *</Label>
+                          <Input
+                            id={`edit-model-${truck.id}`}
+                            value={editingTruck.model}
+                            onChange={(e) => setEditingTruck(prev => prev ? { ...prev, model: e.target.value } : null)}
+                            placeholder="e.g., Hino, Fuso"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`edit-year-${truck.id}`}>Year *</Label>
+                          <Input
+                            id={`edit-year-${truck.id}`}
+                            type="number"
+                            value={editingTruck.year}
+                            onChange={(e) => setEditingTruck(prev => prev ? { ...prev, year: parseInt(e.target.value) } : null)}
+                            placeholder="e.g., 2020"
+                            min="1900"
+                            max={new Date().getFullYear() + 1}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`edit-license-${truck.id}`}>License Plate *</Label>
+                          <Input
+                            id={`edit-license-${truck.id}`}
+                            value={editingTruck.license_plate}
+                            onChange={(e) => setEditingTruck(prev => prev ? { ...prev, license_plate: e.target.value } : null)}
+                            placeholder="e.g., KCA 123A"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`edit-capacity-${truck.id}`}>Capacity (tons) *</Label>
+                          <Input
+                            id={`edit-capacity-${truck.id}`}
+                            type="number"
+                            step="0.1"
+                            value={editingTruck.capacity}
+                            onChange={(e) => setEditingTruck(prev => prev ? { ...prev, capacity: parseFloat(e.target.value) } : null)}
+                            placeholder="e.g., 10.5"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor={`edit-fuel-${truck.id}`}>Fuel Type</Label>
+                          <Select
+                            value={editingTruck.fuel_type}
+                            onValueChange={(value) => setEditingTruck(prev => prev ? { ...prev, fuel_type: value } : null)}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select fuel type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="diesel">Diesel</SelectItem>
+                              <SelectItem value="petrol">Petrol</SelectItem>
+                              <SelectItem value="electric">Electric</SelectItem>
+                              <SelectItem value="hybrid">Hybrid</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <Label htmlFor={`edit-status-${truck.id}`}>Status</Label>
+                          <Select
+                            value={editingTruck.status}
+                            onValueChange={(value: 'available' | 'in_use' | 'maintenance') => 
+                              setEditingTruck(prev => prev ? { ...prev, status: value } : null)
+                            }
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="available">Available</SelectItem>
+                              <SelectItem value="in_use">In Use</SelectItem>
+                              <SelectItem value="maintenance">Maintenance</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="flex justify-end space-x-4">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={cancelEditing}
+                        >
+                          <X className="h-4 w-4 mr-2" />
+                          Cancel
+                        </Button>
+                        <Button type="submit" className="bg-green-600 hover:bg-green-700">
+                          <Save className="h-4 w-4 mr-2" />
+                          Save Changes
+                        </Button>
+                      </div>
+                    </form>
+                  ) : (
+                    // Display Mode
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-4 mb-4">
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900">
+                              {truck.make} {truck.model}
+                            </h3>
+                            <p className="text-gray-600">License: {truck.license_plate}</p>
+                          </div>
+                          {getStatusBadge(truck.status)}
+                        </div>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                          <div>
+                            <Label className="text-sm font-medium text-gray-600">Year</Label>
+                            <p className="text-gray-900">{truck.year}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-600">Capacity</Label>
+                            <p className="text-gray-900">{truck.capacity} tons</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-600">Fuel Type</Label>
+                            <p className="text-gray-900 capitalize">{truck.fuel_type}</p>
+                          </div>
+                          <div>
+                            <Label className="text-sm font-medium text-gray-600">Added</Label>
+                            <p className="text-gray-900">
+                              {new Date(truck.created_at).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
                       </div>
                       
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-                        <div>
-                          <Label className="text-sm font-medium text-gray-600">Year</Label>
-                          <p className="text-gray-900">{truck.year}</p>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium text-gray-600">Capacity</Label>
-                          <p className="text-gray-900">{truck.capacity_tons} tons</p>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium text-gray-600">Fuel Type</Label>
-                          <p className="text-gray-900 capitalize">{truck.fuel_type}</p>
-                        </div>
-                        <div>
-                          <Label className="text-sm font-medium text-gray-600">Added</Label>
-                          <p className="text-gray-900">
-                            {new Date(truck.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
+                      <div className="flex items-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => startEditing(truck)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteTruck(truck.id)}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
-                    
-                    <div className="flex items-center space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate(`/trucks/${truck.id}/edit`)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDeleteTruck(truck.id)}
-                        className="text-red-600 hover:text-red-700"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             ))
