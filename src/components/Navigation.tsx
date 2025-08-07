@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Menu, X, Truck, Package, Phone, Home } from 'lucide-react';
+import { Menu, X, Truck, Package, Phone, Home, BarChart3, Settings, User } from 'lucide-react';
 import logo from '@/assets/haulhub-logo.png';
 
 const Navigation = () => {
@@ -10,8 +10,11 @@ const Navigation = () => {
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home },
-    { path: '/order', label: 'Order Materials', icon: Package },
-    { path: '/services', label: 'Truck Services', icon: Truck },
+    { path: '/dashboard', label: 'Dashboard', icon: User },
+    { path: '/trucks', label: 'Trucks', icon: Truck },
+    { path: '/reports', label: 'Reports', icon: BarChart3 },
+    { path: '/settings', label: 'Settings', icon: Settings },
+    { path: '/services', label: 'Services', icon: Package },
     { path: '/contact', label: 'Contact', icon: Phone },
   ];
 

@@ -11,6 +11,13 @@ import HomePage from "@/pages/HomePage";
 import OrderPage from "@/pages/OrderPage";
 import ServicesPage from "@/pages/ServicesPage";
 import ContactPage from "@/pages/ContactPage";
+import LoginPage from "@/pages/LoginPage";
+import DashboardPage from "@/pages/DashboardPage";
+import CreateHaulPage from "@/pages/CreateHaulPage";
+import HaulDetailsPage from "@/pages/HaulDetailsPage";
+import TrucksPage from "@/pages/TrucksPage";
+import ReportsPage from "@/pages/ReportsPage";
+import SettingsPage from "@/pages/SettingsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,7 +34,14 @@ const App = () => (
             <main>
               <Routes>
                 <Route path="/" element={<HomePage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/order" element={<OrderPage />} />
+                <Route path="/create-haul" element={<CreateHaulPage />} />
+                <Route path="/hauls/:id" element={<HaulDetailsPage />} />
+                <Route path="/trucks" element={<TrucksPage />} />
+                <Route path="/reports" element={<ReportsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
                 <Route path="/services" element={<ServicesPage />} />
                 <Route path="/contact" element={<ContactPage />} />
                 <Route path="*" element={<NotFound />} />
